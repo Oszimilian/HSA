@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
 
 	//printName();
 
-	//drawX(10);
+	drawX(50);
 
 	calcSpeed(72, 64, 200);
 
