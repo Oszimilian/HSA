@@ -16,6 +16,8 @@ struct IEEE
 	int e[2];
 	int mantisse[2][23];
 	
+	int outputMantisse[23];
+	
 	char operator;
 	float result;
 };
@@ -170,11 +172,13 @@ void showNumberIntBin(IEEE *ieee)
 {
 	int showFlag = 0;
 	int counter = 0;
+	int greaterOne = 0;
 
 	for (int i = 0; i < 2; i++)
 	{
 		showFlag = 0;
 		counter = 0;
+		greaterOne = 1;
 		
 		for (int k = 32 - 1; k >= 0; k--)
 		{
@@ -187,8 +191,14 @@ void showNumberIntBin(IEEE *ieee)
 			}
 		}
 		
-		ieee->dotPosition[i] = counter - 1;
-		
+		if (counter > 0)
+		{
+			ieee->dotPosition[i] = counter - 1;
+			
+		} else {
+			printf("0");
+			greaterOne = 0;
+		}
 		
 		printf(".");
 
@@ -197,6 +207,13 @@ void showNumberIntBin(IEEE *ieee)
 		{
 			printf("%d", ieee->binFloatInput[i][k]);
 			ieee->binNormalice[i][counter] = ieee->binFloatInput[i][k];
+			
+			if (greaterOne == 0 && ieee->binFloatInput[i][k] == 1)
+			{
+				ieee->dotPosition[i] = counter * -1 - 1;
+				greaterOne = 1;
+			}
+			
 			counter++;
 			if (counter >= 32) break;
 		}
@@ -217,8 +234,14 @@ void normaliceNumber(IEEE *ieee)
 
 		for (int i = 0; i < 23; i++)
 		{
-			ieee->mantisse[k][i] = ieee->binNormalice[k][i + 1];
+			if (ieee->e[k] > 0)
+			{
+				ieee->mantisse[k][i] = ieee->binNormalice[k][i + 1];
+			} else {
+				ieee->mantisse[k][i] = ieee->binNormalice[k][i + -1 * ieee->e[k]];
+			}
 		}
+		
 		
 		
 		for (int i = 0; i < 23; i++)
@@ -227,7 +250,7 @@ void normaliceNumber(IEEE *ieee)
 		}
 		
 		printf("\n");
-		printf("Exponent: %d \n", ieee->e[k]);
+		printf("Exponent %d: %d \n", k, ieee->e[k]);
 		printf("\n");
 	}
 	
@@ -296,9 +319,13 @@ void normaliceNumber(IEEE *ieee)
 	printf("\n");
 }
 
+
+
 void showIEEEFormat(IEEE *ieee)
 {
 	char *p = &ieee->result;
+	
+	printf("\n");
 
 	for (int i = sizeof(float) - 1; i >= 0; i--)
 	{
@@ -324,6 +351,90 @@ void showIEEEFormat(IEEE *ieee)
 	}
 }
 
+void addNumber(IEEE *ieee)
+{
+	int carry = 0;
+	
+	for (int i = 23 - 1; i >= 0; i--)
+	{
+		if (ieee->mantisse[0][i] == 0 && ieee->mantisse[1][i] == 0 && carry == 0)
+		{
+			ieee->outputMantisse[i] = 0;
+			carry = 0;
+		}
+		else if (ieee->mantisse[0][i] == 0 && ieee->mantisse[1][i] == 0 && carry == 1)
+		{
+			ieee->outputMantisse[i] = 1;
+			carry = 0;
+		}
+		else if (ieee->mantisse[0][i] == 1 && ieee->mantisse[1][i] == 0 && carry == 0)
+		{
+			ieee->outputMantisse[i] = 1;
+			carry = 0;
+		}
+		else if (ieee->mantisse[0][i] == 0 && ieee->mantisse[1][i] == 1 && carry == 0)
+		{
+			ieee->outputMantisse[i] = 1;
+			carry = 0;
+		}
+		else if (ieee->mantisse[0][i] == 1 && ieee->mantisse[1][i] == 1 && carry == 0)
+		{
+			ieee->outputMantisse[i] = 0;
+			carry = 1;
+		}
+		else if (ieee->mantisse[0][i] == 1 && ieee->mantisse[1][i] == 1 && carry == 1)
+		{
+			ieee->outputMantisse[i] = 1;
+			carry = 1;
+		}
+		else if (ieee->mantisse[0][i] == 1 && ieee->mantisse[1][i] == 0 && carry == 1)
+		{
+			ieee->outputMantisse[i] = 0;
+			carry = 1;
+		}
+		else if(ieee->mantisse[0][i] == 0 && ieee->mantisse[1][i] == 1 && carry == 1)
+		{
+			ieee->outputMantisse[i] = 0;
+			carry = 1;
+		}
+	}
+	
+	if (carry == 1)
+	{
+		printf("Carry Adaption \n");
+		
+		for (int i = 23 - 2; i >= 1; i--)
+		{
+			printf("[%d]%d  -> [%d]%d \n", i + 1, ieee->outputMantisse[i + 1], i, ieee->outputMantisse[i]); 
+			ieee->outputMantisse[i + 1] = ieee->outputMantisse[i];
+		}
+		ieee->outputMantisse[0] = 1;
+	}
+	
+	printf("\n           ");
+	
+	for (int i = 0; i < 23; i++)
+	{
+		printf("%d", ieee->outputMantisse[i]);
+	}
+}
+
+void makeCalculation(IEEE *ieee)
+{
+	switch(ieee->operator)
+	{
+		case '+': addNumber(ieee); break;
+		
+		case '-': break;
+		
+		case '*': break;
+		
+		case '/': break;
+		
+		default: break;
+	}
+}
+
 int main(void)
 {
 	IEEE *ieee = (IEEE*) malloc(sizeof(IEEE));
@@ -338,7 +449,7 @@ int main(void)
 	
 	normaliceNumber(ieee);
 	
-	
+	makeCalculation(ieee);
 	
 	showIEEEFormat(ieee);
 
